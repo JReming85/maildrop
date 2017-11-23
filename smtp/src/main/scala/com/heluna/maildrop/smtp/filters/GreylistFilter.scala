@@ -20,6 +20,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object GreylistFilter extends LazyLogging {
 
+	val enabled = MailDropConfig("maildrop.sender.greylist.enabled").getOrElse("true")
 	val reason = MailDropConfig("maildrop.sender.greylist.response").getOrElse("Greylisted")
 	val ttl = MailDropConfig.getSeconds("maildrop.sender.greylist.time").getOrElse(300L).toInt
 	val system = ActorSystem()
@@ -37,19 +38,25 @@ object GreylistFilter extends LazyLogging {
 //	}
 
 	def apply(host: Map[String, String], inet: InetAddress, helo: String): Future[Product] = Future {
-		logger.debug("checking greylist entry for " + inet.getHostAddress + "/" + helo)
-		host.get("greylist") match {
-			case Some(str) => Continue()
-			case None =>
-				system.scheduler.scheduleOnce(new FiniteDuration(ttl, duration.SECONDS))({ GreylistFilter.add(inet, helo) })
-				Greylist(reason)
-		}
+                if (enabled == "true") {
+                    logger.debug("checking greylist entry for " + inet.getHostAddress + "/" + helo)
+                    host.get("greylist") match {
+                            case Some(str) => Continue()
+                            case None =>
+                                    system.scheduler.scheduleOnce(new FiniteDuration(ttl, duration.SECONDS))({ GreylistFilter.add(inet, helo) })
+                                    Greylist(reason)
+                    }
+                } else {
+                    Continue()
+                }
 	}
 
 	def add(inet: InetAddress, helo: String) {
-		logger.debug("adding greylist entry for " + inet.getHostAddress + "/" + helo)
-		Redis.client.hset(HostEntry.key(inet, helo), "greylist", "y")
-		HostEntry.touch(inet, helo)
+                if (enabled == "true") {
+                    logger.debug("adding greylist entry for " + inet.getHostAddress + "/" + helo)
+                    Redis.client.hset(HostEntry.key(inet, helo), "greylist", "y")
+                    HostEntry.touch(inet, helo)
+                }
 	}
 
 }
