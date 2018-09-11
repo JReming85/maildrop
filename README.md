@@ -78,6 +78,72 @@ To run the web server, simply use the "start" command inside the zipfile, or
 again to specify a custom configuration use start 
 -Dconfig.file=/path/to/your/application.conf
 
+### Create start scripts with file logs
+
+Create folder for logs
+Mkdir /var/log/maildrop
+
+Go to the Maildrop root foler and create a new file:
+nano start-smtp.sh
+
+setsid nohup java -Dconfig.file=/opt/maildrop/smtp/smtp.conf -jar /opt/maildrop/smtp/smtp-server.jar MailDrop &>/var/log/maildrop/smtp.log>&1&
+
+Point Dconfig.file to the smtp server config & -jar to the smtp-assembly-2.0.jar file
+Ctrl + X -> Y to save
+
+nano start-web.sh
+setsid nohup /opt/maildrop/web-2.0/bin/web -Dconfig.file=/opt/maildrop/web-2.0/conf/application.conf &>/var/log/maildrop/web.log>&1&
+
+Have it execute web-2.0/bin/web with Dconfig.file pointing to the conf/application.conf, use full addresses if you want to create a service.
+
+sudo chmod +x ./start-*
+
+### Create system services with the start scripts
+
+nano /etc/systemd/system/maildrop-smtp.service
+[Unit]
+Description=maildrop-smtp
+After=network.target redis.service
+
+[Service]
+User=root
+ExecStart=/opt/maildrop/start-smtp.sh
+
+[Install]
+WantedBy=multi-user.target
+
+Ctrl + X -> Y to save
+
+nano /etc/systemd/system/maildrop-web.service
+[Unit]
+Description=maildrop-web
+After=network.target redis.service
+
+[Service]
+User=root
+ExecStart=/opt/maildrop/start-web.sh
+
+[Install]
+WantedBy=multi-user.target
+
+Ctrl + X -> Y to save
+
+systemctl daemon-reload
+systemctl enable maildrop-smtp.service
+systemctl enable maildrop-web.service
+
+### Setup log rotation for file logs
+
+sudo nano /etc/logrotate.d/maildrop.conf
+/var/log/maildrop/*.log {
+        daily # rotate daily
+        size 10240 # rotate if 10MB or larger
+        minsize 1024 # Do not rotate if under 1MB
+        notifempty # Do not rotate if empty
+}
+Obviously you can set your own rules on rotation
+
+Ctrl + X -> Y to save
 
 Changelog
 ---------
