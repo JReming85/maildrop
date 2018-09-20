@@ -81,22 +81,24 @@ again to specify a custom configuration use start
 ### Create start scripts with file logs
 
 ##Create folder for logs
+
     Mkdir /var/log/maildrop
 
 Go to the Maildrop root foler and create a new file:
 
     echo "setsid nohup java -Dconfig.file=/opt/maildrop/smtp/smtp.conf -jar /opt/maildrop/smtp/smtp-server.jar MailDrop &>>/var/log/maildrop/smtp.log>&1&" >  ./start-smtp.sh
 
-Point Dconfig.file to the smtp server config & -jar to the smtp-assembly-2.0.jar file
+>Point Dconfig.file to the smtp server config & -jar to the smtp-assembly-2.0.jar file
 
     echo "setsid nohup /opt/maildrop/web-2.0/bin/web -Dconfig.file=/opt/maildrop/web-2.0/conf/application.conf &>/var/log/maildrop/web.log>&1&" > ./start-web.sh
 
-Have it execute web-2.0/bin/web with Dconfig.file pointing to the conf/application.conf, use full addresses if you want to create a service.
+>Have it execute web-2.0/bin/web with Dconfig.file pointing to the conf/application.conf, use full addresses if you want to create a service.
 
     sudo chmod +x ./start-*
 
 ### Create system services for automated start / easy start/stop
 
+# This will create a service file to run MailDrop's SMTP server 
 
     echo "[Unit]
     Description=maildrop-smtp
@@ -110,7 +112,8 @@ Have it execute web-2.0/bin/web with Dconfig.file pointing to the conf/applicati
     WantedBy=multi-user.target
     ">/etc/systemd/system/maildrop-smtp.service
 
-nano /etc/systemd/system/maildrop-web.service
+
+# This will create a service file to run MailDrop's WEB server
 
     echo "[Unit]
     Description=maildrop-web
@@ -124,6 +127,7 @@ nano /etc/systemd/system/maildrop-web.service
     WantedBy=multi-user.target
     ">/etc/systemd/system/maildrop-web.service
 
+# Reload the services daemon to see the new files, and start them on boot
 
     systemctl daemon-reload
     systemctl enable maildrop-smtp.service
